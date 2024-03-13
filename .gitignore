@@ -1,0 +1,8 @@
+*.dll
+.git
+build/
+lib/
+tmp/
+src/build/
+.vscode/
+include/
