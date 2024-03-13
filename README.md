@@ -17,3 +17,8 @@
 [√] 基于深度贴图的阴影渲染
 
 #### 效果预览
+
+![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png)
+
+
+
