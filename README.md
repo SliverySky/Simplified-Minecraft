@@ -16,6 +16,12 @@
 
 [√] 基于深度贴图的阴影渲染
 
+### 待做
+
+[ ] 玩家的碰撞检测
+
+[ ] 方块的移除和添加
+
 #### 效果预览
 
 ![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png)
