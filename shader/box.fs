@@ -23,6 +23,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, float cosVal){
     //为了避免条纹现象（该现象产生的原因是每一像素的深度纹理无法准确表示该像素所在局部的所有深度值）
     float bias = max(0.005 * (1-cosVal), 0.001);
 
+    //float shadow = (depthNow - bias) > texture(shadowMap, projCoords.xy).r ? 1.0 : 0.0;
     float shadow = 0.0;
     vec2 texSize = 1.0 / textureSize(shadowMap, 0);
     for (int x = -1; x <= 1; x++){

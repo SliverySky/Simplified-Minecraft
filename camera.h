@@ -26,7 +26,7 @@ public:
     float zoom;
     sf::RenderWindow *window=NULL;
     sf::Vector2i lastMousePosition;
-
+    glm::mat4 projMat = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
     Camera(glm::vec3 _position = glm::vec3(0,0,0), float _pitch = PITCH, float _yaw = YAW):moveSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM){
         position = _position;
         pitch = _pitch;
@@ -39,7 +39,7 @@ public:
         return glm::lookAt(position, position+front, up);
     }   
 
-    void handEvent(sf::Event event, float deltaTime){
+    void HandEvent(sf::Event event, float deltaTime){
         processKeyboard(deltaTime);
         processMouse();
         updateDirectionVectoers();

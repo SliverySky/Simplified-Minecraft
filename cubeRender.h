@@ -19,7 +19,6 @@ enum CubeType{
     FLOWER,
     WATER,
     PLANT
-
 };
 struct Cube{
     std::vector<Vertex> vertices;
@@ -30,7 +29,7 @@ struct Cube{
 class CubeRender{
 public:
     unsigned int textureID;
-    std::map<CubeType,Cube> cubeDatabase;
+    std::map<CubeType, Cube> cubeDatabase;
     CubeRender(){}
     void LoadResource(){
         // 加载贴图资源
@@ -45,31 +44,16 @@ public:
         LoadPlantCube();
     }
 
-    void AddToWorldMesh(Mesh& mesh, CubeType type, glm::ivec3 position, int isRender){
-        std::vector<Vertex>& vertices = mesh.vertices;
-        std::vector<unsigned int>& indices = mesh.indices;
-        unsigned int vertex_num = vertices.size();
-        unsigned int index_num = indices.size();
-        if(type == FLOWER || type == LEAF || type == PLANT){
-            for(int i = 0; i < cubeDatabase[type].vertices.size(); i++){
-                vertices.push_back(cubeDatabase[type].vertices[i]);
-            }
-        }else{
-            for (int i = 0; i < 6; i++){ // 6个面
-                if (isRender & (1<<i)){
-                    for (int j = 0; j < 6; j++){ // 每个面的6个顶点
-                        vertices.push_back(cubeDatabase[type].vertices[6 * i + j]);
-                    }
-                }
-            }
-        }
 
-
-        for (auto it = vertices.begin() + vertex_num; it != vertices.end(); it++){
-            it->position += position;
-            it->texCoords /= 16.0f; //归一化纹理坐标
-            indices.push_back(vertex_num++);
+    std::vector<unsigned int> AddCubeToMesh(Mesh& mesh, CubeType type, glm::ivec3 position, bool instant=true){
+        std::vector<Vertex> vertices;
+        for(int i = 0; i < cubeDatabase[type].vertices.size(); i++){
+            Vertex t = cubeDatabase[type].vertices[i];
+            t.position += position;
+            t.texCoords /= 16.0f;
+            vertices.push_back(t);
         }
+        return mesh.AddVertices(vertices, instant);
     }
 private:
     unsigned int TextureFromFile(const std::string path){
@@ -123,15 +107,15 @@ private:
         glm::vec3 yaxis = {0.0f, 1.0f, 0.0f};
         glm::vec3 zaxis = {0.0f, 0.0f, 1.0f};
         AddPlane(vertex, indices, glm::vec3(0, 1, 0), xaxis, zaxis, textureCoords[0]);// (0, 1, 0)
-        AddPlane(vertex, indices, glm::vec3(0, 0, 0), zaxis, xaxis, textureCoords[1]); // (0, -1, 0)
-        AddPlane(vertex, indices, glm::vec3(0, 1, 0), zaxis, -yaxis, textureCoords[2]);// (-1, 0, 0)
-        AddPlane(vertex, indices, glm::vec3(0, 1, 1), xaxis, -yaxis , textureCoords[3]); // (0, 0, 1)
-        AddPlane(vertex, indices, glm::vec3(1, 1, 1), -zaxis, -yaxis, textureCoords[4]);// (1, 0, 0)
-        AddPlane(vertex, indices, glm::vec3(1, 1, 0), -xaxis, -yaxis , textureCoords[5]); // (0, 0, -1)
+        AddPlane(vertex, indices, glm::vec3(1, 1, 1), -zaxis, -yaxis, textureCoords[1]);// (1, 0, 0)
+        AddPlane(vertex, indices, glm::vec3(0, 1, 1), xaxis, -yaxis , textureCoords[2]); // (0, 0, 1)
+        AddPlane(vertex, indices, glm::vec3(1, 1, 0), -xaxis, -yaxis , textureCoords[3]); // (0, 0, -1)
+        AddPlane(vertex, indices, glm::vec3(0, 1, 0), zaxis, -yaxis, textureCoords[4]);// (-1, 0, 0)
+        AddPlane(vertex, indices, glm::vec3(0, 0, 0), zaxis, xaxis, textureCoords[5]); // (0, -1, 0)
     }
     void LoadGrassCube(){
         cubeDatabase.emplace(GRASS, Cube());
-        glm::vec2 textureCoords[6] = {{0, 0}, {2, 0}, {1, 0}, {1, 0},{1, 0},{1, 0}};
+        glm::vec2 textureCoords[6] = {{0, 0}, {1, 0}, {1, 0},{1, 0},{1, 0}, {2, 0}};
         AddMesh(cubeDatabase[GRASS], textureCoords);
     }
     void LoadGroundCube(){
@@ -163,7 +147,7 @@ private:
     }
     void LoadTreeCube(){
         cubeDatabase.emplace(TREE, Cube());
-        glm::vec2 textureCoords[6] = {{5,0},{5,0},{4,0},{4,0},{4,0},{4,0}};
+        glm::vec2 textureCoords[6] = {{5,0},{4,0},{4,0},{4,0},{4,0},{5,0}};
         AddMesh(cubeDatabase[TREE], textureCoords);
     }
     void LoadLeafCube(){

@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "world.h"
 #include "skyRender.h"
+#include "BuildTool.h"
 void renderQuad();
 void print(glm::vec4 v, std::string name){
     std::cout<<name<<":"<<v.x <<" "<<v.y<<" "<<v.z<<" "<<v.w<<std::endl;
@@ -47,7 +48,7 @@ int main(){
     // important
 
     //渲染阴影
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     unsigned int depthMap;
@@ -68,14 +69,29 @@ int main(){
     Shader debugShader("./shader/debug.vs", "./shader/debug.fs");
     
     SkyRender skyRender;
-    glm::vec3 lightPos(100, 50, 100);
+    
+    std::ifstream file("./settings.txt");
+    std::string line;
+    
+    int x, y, z;
+    bool isDebug;
+    float nearPlane = 1.0f, farPlane = 300.0f;
+    float width = 100.0f;
+    std::getline(file, line);
+    std::istringstream iss = std::istringstream(line);
+    iss >> x >> y >> z >>isDebug;
+    std::getline(file, line);
+    iss = std::istringstream(line);
+    iss >> width >>nearPlane>>farPlane;
+    glm::vec3 lightPos(x, y, z);
+
     World world(lightPos);
     nowShader.use();
     nowShader.setInt("texture_diffuse", 0);
     nowShader.setInt("shadowMap", 1);
     debugShader.use();
     debugShader.setInt("depthMap", 0);
-
+    BuildTool buildTool;
     while(running){
         sf::Event event;
         while(window.pollEvent(event)){
@@ -91,8 +107,8 @@ int main(){
         // 渲染深度纹理
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float nearPlane = 1.0f, farPlane = 300.0f;
-        lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, nearPlane, farPlane);
+        
+        lightProjection = glm::ortho(-width, width, -width, width, nearPlane, farPlane);
         lightView = glm::lookAt(lightPos, glm::vec3(0, 0, 0), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
         glm::vec4 tpos = lightSpaceMatrix * glm::vec4(10, 2, 10, 1);
@@ -110,18 +126,21 @@ int main(){
         glViewport(0, 0, srcWidth, srcHeight);
         //glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
 
-        // // // 用于可视化debugging
-        // // // ---------------------------------------------
-        // debugShader.use();
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, depthMap);
-        // renderQuad();
 
-    //     // //渲染世界
-
+    
+    if (isDebug){
+        // 用于可视化debugging
+        // ---------------------------------------------
+        debugShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        renderQuad();
+    }else{
+        //渲染世界
         sf::Vector2u windowSize = window.getSize();
-        glm::mat4 projMat = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+        glm::mat4 projMat = camera.projMat;
         glm::mat4 viewMat = camera.getViewMatrix();
        //glm::mat4 projMat = lightProjection;
        // glm::mat4 viewMat = lightView;
@@ -142,10 +161,11 @@ int main(){
         // //渲染天空盒子
         skyRender.Render(viewMat, projMat);
 
-
         sf::Time dt = clock.restart();
-        camera.handEvent(event, dt.asSeconds());
-        window.display();
+        camera.HandEvent(event, dt.asSeconds());
+        buildTool.Work(window, camera, world, dt.asSeconds());
+    }
+           window.display();
 
     }
 }
