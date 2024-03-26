@@ -11,6 +11,7 @@ void renderQuad();
 void print(glm::vec4 v, std::string name){
     std::cout<<name<<":"<<v.x <<" "<<v.y<<" "<<v.z<<" "<<v.w<<std::endl;
 }
+bool stop = false;
 int main(){
     const int srcWidth = 800;
     const int srcHeight = 600;
@@ -21,6 +22,7 @@ int main(){
     window_settings.antialiasingLevel = 2;  // Request 2 levels of antialiasing
 
     sf::RenderWindow window(sf::VideoMode(800, 600), "MineCraft",sf::Style::Resize | sf::Style::Close, window_settings);
+    window.setMouseCursorGrabbed(true); 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(sf::Context::getFunction))){
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
@@ -38,7 +40,7 @@ int main(){
 
     glViewport(0, 0, srcWidth, srcHeight);
 
-    Camera camera(glm::vec3(12, 6, 12));
+    Camera camera(window, glm::vec3(12, 6, 12));
 
     bool running = true;
     sf::Clock clock;
@@ -99,8 +101,13 @@ int main(){
                 running = false;
             }else if(event.type == sf::Event::Resized){
                 glViewport(0, 0, event.size.width, event.size.height);
+            }else if(event.type == sf::Event::GainedFocus){
+                stop = false;
+            }else if (event.type == sf::Event::LostFocus){
+                stop = true;
             }
-        }     
+        }    
+        if (stop) continue; 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -159,10 +166,12 @@ int main(){
         world.Render(nowShader);
 
         // //渲染天空盒子
+
         skyRender.Render(viewMat, projMat);
 
         sf::Time dt = clock.restart();
         camera.HandEvent(event, dt.asSeconds());
+        buildTool.HandEvent(event, dt.asSeconds());
         buildTool.Work(window, camera, world, dt.asSeconds());
     }
            window.display();

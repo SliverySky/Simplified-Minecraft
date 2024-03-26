@@ -24,14 +24,14 @@ public:
     float moveSpeed;
     float mouseSensitivity;
     float zoom;
-    sf::RenderWindow *window=NULL;
     sf::Vector2i lastMousePosition;
+    sf::RenderWindow &window;
     glm::mat4 projMat = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-    Camera(glm::vec3 _position = glm::vec3(0,0,0), float _pitch = PITCH, float _yaw = YAW):moveSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM){
+    Camera(sf::RenderWindow & window, glm::vec3 _position = glm::vec3(0,0,0), float _pitch = PITCH, float _yaw = YAW):moveSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM), window(window){
         position = _position;
         pitch = _pitch;
         yaw = _yaw;
-        lastMousePosition = sf::Mouse::getPosition();
+        lastMousePosition = sf::Mouse::getPosition(window);
         updateDirectionVectoers();
     }
 
@@ -44,10 +44,6 @@ public:
         processMouse();
         updateDirectionVectoers();
     }
-    void setBound(sf::RenderWindow *_window){
-        window = _window;
-    }
-
 
 private:
     void processKeyboard(float deltaTime){
@@ -63,28 +59,21 @@ private:
 
 
     void processMouse(){
-        sf::Vector2i _mousePosition = sf::Mouse::getPosition();
-        float xoffset = mouseSensitivity * (_mousePosition.x - lastMousePosition.x);
-        float yoffset = mouseSensitivity * (_mousePosition.y - lastMousePosition.y);
-        
+        //sf::Vector2u windowSize = window.getSize();
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        sf::Vector2u windowSize = window.getSize();
+        //如果鼠标超出屏幕，重置鼠标
+        if(mousePos.x < 20 || mousePos.x > windowSize.x - 20){
+            sf::Vector2i resetPos = sf::Vector2i(windowSize.x / 2, mousePos.y);
+            sf::Mouse::setPosition(resetPos, window);
+            lastMousePosition = resetPos;
+        }
+        float xoffset = mouseSensitivity * (mousePos.x - lastMousePosition.x);
+        float yoffset = mouseSensitivity * (mousePos.y - lastMousePosition.y);
+        //std::cout<<lastMousePosition.x <<" "<<lastMousePosition.y<<std::endl;
         yaw -= xoffset;
         pitch -= yoffset;
-
-        //如果鼠标超出屏幕，重置鼠标
-        // 获取窗口的全局边界
-        
-
-        // 判断鼠标是否超出窗口范围
-        // if (window != NULL){
-        //     sf::Vector2u windowSize = window->getSize();
-        //     sf::Vector2i pos = sf::Mouse::getPosition(*window);
-        //     if(pos.x < 0 || pos.x > windowSize.x){
-        //             sf::Mouse::setPosition(sf::Vector2i(windowSize.x / 2, pos.y), *window);
-        //      }
-        // }
-       // _mousePosition = sf::Mouse::getPosition();
-        lastMousePosition.x = _mousePosition.x;
-        lastMousePosition.y = _mousePosition.y;
+        lastMousePosition = mousePos;
     }
     void updateDirectionVectoers(){
         if (pitch > 360) pitch -= 360;

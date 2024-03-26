@@ -7,6 +7,10 @@
 #include <functional>
 class BuildTool{
 public:
+    // enum BuildMode{
+    //     REMOVE,
+    //     BUILD
+    // };
     sf::RectangleShape verticalLine;
     sf::RectangleShape horizontalLine;
     unsigned int VAO;
@@ -16,14 +20,24 @@ public:
     bool isHit=false;
     glm::ivec3 hitPos;
     float accumTime = 0;
+    float buildTime = 0;
     sf::Text text;
     sf::Font font;
     sf::RectangleShape textBox;
+    int buildMode = 0;
+    
+    const float SCROLL = 0.1;
+    float scrollValue = SCROLL / 2;
+    std::vector<sf::Sprite> items;
+    sf::RectangleShape itemBox;
+    sf::Texture itemTexture;
+
     BuildTool():
-    verticalLine(sf::Vector2f(3,30)), 
-    horizontalLine(sf::Vector2f(30,3)),
-    shader("./shader/line.vs", "./Shader/line.fs"),
-    textBox(sf::Vector2f(200, 50))
+        verticalLine(sf::Vector2f(3,30)), 
+        horizontalLine(sf::Vector2f(30,3)),
+        shader("./shader/line.vs", "./Shader/line.fs"),
+        textBox(sf::Vector2f(200, 50)),
+        itemBox(sf::Vector2f(420, 60))
     {
         verticalLine.setFillColor(sf::Color::White);
         horizontalLine.setFillColor(sf::Color::White);
@@ -56,6 +70,9 @@ public:
         textBox.setOutlineColor(sf::Color::Black);
         textBox.setOutlineThickness(2);
         textBox.setPosition(590, 10);
+        itemBox.setPosition(190, 540);
+        itemBox.setFillColor(sf::Color(128, 128, 128));
+        LoadItems();
     }
     void Work(sf::RenderWindow &window, Camera &camera, World &world, float deltaTime){
         float centerX = window.getSize().x / 2;
@@ -65,9 +82,22 @@ public:
         window.pushGLStates();
         window.draw(verticalLine);
         window.draw(horizontalLine);
-        window.draw(textBox);
-        window.draw(text);
+        //window.draw(textBox);
+        //window.draw(text);
+        window.draw(itemBox);
+        // 绘制选中的方块
+        for (auto t: items){
+            window.draw(t);
+        }
+        sf::RectangleShape itemHighlight(sf::Vector2f(50, 50));
+        itemHighlight.setOutlineThickness(2);
+        itemHighlight.setFillColor(sf::Color::Transparent);
+        itemHighlight.setOutlineColor(sf::Color::Red);
+        itemHighlight.setPosition(400 - 175 + buildMode * 50, 600 - 50);
+        window.draw(itemHighlight);
         window.popGLStates();
+
+
         glm::ivec3 _hitPos;
         bool isHit = HitCube(camera.position, camera.front, world, _hitPos);
         if (!isHit){
@@ -95,18 +125,47 @@ public:
         glDrawArrays(GL_LINES, 0, 24);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
-        
-        if(sf::Mouse::isButtonPressed(sf::Mouse::Left)){
-            accumTime += deltaTime;
+
+        // if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+        //     if (buildMode == REMOVE){
+        //         buildMode = BUILD;
+        //         text.setString(L"移除模式");
+        //     }
+        //     else if (buildMode == BUILD){
+        //         buildMode = REMOVE;
+        //         text.setString(L"建造模式");
+        //     } 
+        // }
+        if (buildMode == 0){
+            if(sf::Mouse::isButtonPressed(sf::Mouse::Left)){
+                accumTime += deltaTime;
+            }else{
+                accumTime = 0;
+            }
+            if(accumTime > 0.7){
+                world.RemoveCube(hitPos);
+            }
         }else{
-            accumTime = 0;
+           if (buildTime > 0) buildTime -= deltaTime;
+           if(sf::Mouse::isButtonPressed(sf::Mouse::Left) && buildTime <=0){
+                world.AddCube(hitPos, static_cast<CubeType>(buildMode)); 
+                buildTime = 0.5;
+           }
+           
         }
-        if(accumTime > 0.7){
-            world.RemoveCube(hitPos);
-        }
+
     }
 
     void HandEvent(sf::Event event, float deltaTime){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+            scrollValue += deltaTime;
+            if(scrollValue <= 0){
+                scrollValue = SCROLL * 7 + scrollValue;
+            }else if (scrollValue >= SCROLL * 7){
+                scrollValue -= SCROLL * 7; 
+            }
+            buildMode = int(scrollValue / SCROLL);
+        }
     }
     bool HitCube(glm::vec3 source, glm::vec3 front, World &world, glm::ivec3 &hitPos){
         float eps = 1e-2;
@@ -120,7 +179,18 @@ public:
 
         float x, y, z, mint;
         glm::vec3 pos(source);
-        while(world.isCollision(pos)==World::CollisionType::NOTHITTED && glm::distance(source, pos)<20){
+        std::function<bool(glm::vec3)> condition;
+        bool isHit = false;
+        while(true){
+            if (buildMode == 0 && world.IsRemoveAble(pos)){
+                isHit = true;
+                break;
+            }
+            if (buildMode > 0 && world.IsBuildable(pos)){
+                isHit = true;
+                break;
+            }
+            if (glm::distance(source, pos) >= 20) break;
             mint = 1e30;
             if (front.x != 0){
                 x = (Fx(pos.x) - pos.x) / front.x;
@@ -142,7 +212,23 @@ public:
             //std::cout<<front.x <<" "<<front.y<<" "<<front.z<<std::endl;
         }
         hitPos = glm::ivec3(pos);
-        return world.isCollision(pos)==World::CollisionType::HITTED;
+        return isHit;
     }
+
+    bool LoadItems(){
+        if(!itemTexture.loadFromFile("./resources/box.png")){
+            return false;
+        }
+        for (int i = 0; i < 7; i++){
+            sf::IntRect rec(100 * i, 0, 100, 100);
+            items.push_back(sf::Sprite());
+            items.back().setTexture(itemTexture);
+            items.back().setTextureRect(rec);
+            items.back().setScale(0.5f, 0.5f);
+            items.back().setPosition(400 - 175 + i * 50, 600 - 50);
+        }
+        return true;
+    }
+
 };
 #endif

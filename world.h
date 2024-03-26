@@ -113,6 +113,7 @@ public:
     void AddCube(glm::ivec3 pos, CubeType type, bool instant=true){
         glm::ivec3 p2;
         CubeInfo & info = data[pos.x][pos.y][pos.z];
+        
         info.type = type;
         info.memory_index = cubeRender.AddCubeToMesh(worldMesh, type, pos, instant);
         if(IsOpaque(pos)) UpdateRenderInfo(pos);
@@ -169,12 +170,38 @@ public:
            _pos.z > 0 && _pos.z < MAX_Z) return true;
         return false;
     }
-    CollisionType isCollision(glm::vec3 pos){
+    bool IsEmpty(glm::ivec3 pos){
+        return data[pos.x][pos.y][pos.z].type == CubeType::EMPTY;
+    }
+    // 判断所在区域是否为空，并且周围有方块
+    bool IsBuildable(glm::vec3 pos){
+        glm::ivec3 ipos(floor(pos.x), floor(pos.y), floor(pos.z));
+        if(IsInRange(ipos)){
+            bool isEmpty = IsEmpty(ipos);
+            bool isNeighborFull = false;
+            for (int i = 0; i < 6; i++){
+                glm::ivec3 t = ipos + ds[i];
+                if (IsInRange(t) && !IsEmpty(t)){
+                    isNeighborFull = true;
+                    break;
+                }
+            }
+            return isEmpty && isNeighborFull;
+        }else{
+            return false;
+        }       
+    }
+    // 判断所在区域是否有方块
+    bool IsRemoveAble(glm::vec3 pos){
+        return IsCollision(pos) == HITTED;
+    }
+    CollisionType IsCollision(glm::vec3 pos){
         glm::ivec3 _pos(floor(pos.x), floor(pos.y), floor(pos.z));
-        if(_pos.x >= 0 && _pos.x < MAX_X && _pos.y >= 0 && _pos.y < MAX_Y &&
-                 _pos.z > 0 && _pos.z < MAX_Z){
-            if (data[_pos.x][_pos.y][_pos.z].type != CubeType::EMPTY) return HITTED;
-            else return NOTHITTED;
+        if (IsInRange(_pos)){
+            if (data[_pos.x][_pos.y][_pos.z].type != CubeType::EMPTY) 
+                return HITTED;
+            else 
+                return NOTHITTED;
         }else{
             return OUTOFRANGE;
         }

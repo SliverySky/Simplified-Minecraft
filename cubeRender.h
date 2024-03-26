@@ -17,8 +17,8 @@ enum CubeType{
     TREE,
     LEAF,
     FLOWER,
-    WATER,
-    PLANT
+    PLANT,
+    WATER
 };
 struct Cube{
     std::vector<Vertex> vertices;
