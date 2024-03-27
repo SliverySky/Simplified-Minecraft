@@ -23,7 +23,7 @@ public:
     // std::vector<unsigned int> indices;
     unsigned int textureID;
     unsigned int VAO, VBO, EBO;
-    const int MAX_NUM = 36 * 50000;
+    const int MAX_NUM = 36 * 200 * 200 * 50;
     std::queue<unsigned int> freeSpace;
     std::vector<Vertex> vertex_mem;
     std::vector<unsigned int> indices_mem;

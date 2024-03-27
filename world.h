@@ -18,9 +18,9 @@ public:
         OUTOFRANGE,
         NOTHITTED
     };
-    const int static MAX_X = 100;
-    const int static MAX_Y = 100;
-    const int static MAX_Z = 50;
+    const int static MAX_X = 200;
+    const int static MAX_Y = 80;
+    const int static MAX_Z = 200;
     std::vector<std::vector<std::vector<CubeInfo>>> data;
     Mesh worldMesh;
     CubeRender cubeRender;
@@ -55,36 +55,37 @@ public:
         for (int x = 0; x < MAX_X; x++)
             for (int y = 0; y < 2; y++)
                 for (int z = 0; z < MAX_Z; z++)
-                    data[x][y][z].type = CubeType::GROUND;
+                    data[x][y][z].type = CubeType::EMPTY;
 
         //data[lightPos.x][lightPos.y][lightPos.z] = CubeType::WATER;
         // two simple cubes for shadow test
         // data[10][2][10] = CubeType::GRASS;
         // data[8][4][8] = CubeType::GRASS;
         
-        std::string file_names[2] = {"./world1.txt", "./world2.txt"};
-        for (int i = 0; i < 2; i++){
-        std::ifstream file(file_names[i]);
+        std::string file_name = "./worldData.txt";
+        std::ifstream file(file_name);
         if(file.is_open()){
             std::string line;
-            while(std::getline(file, line)) {
-                std::istringstream iss(line);
-                std::vector<std::string> tokens;
-                int x, y, z, t;
-                CubeType t0;
-                iss >> x >> y >> z >> t;
-                if (t==0) t = CubeType::GROUND;
-                else if (t==1) t0 = CubeType::GRASS;
-                else if (t==2) t0 = CubeType::TREE;
-                else if (t==3) t0 = CubeType::LEAF;
-                else if (t==4) t0 = CubeType::FLOWER;
-                else if (t==5) t0 = CubeType::WATER;
-                else if (t==6) t0 = CubeType::PLANT;
-                data[x][y][z].type = t0;
+            std::getline(file, line);
+            std::istringstream iss(line);
+            int sizX, sizY, sizZ;
+            iss >> sizX >> sizY >> sizZ;
+            assert(sizX <= MAX_X && sizY <= MAX_Y && sizZ <= MAX_Z);
+            std::getline(file, line);
+            iss.clear();
+            iss.str(line);
+            for (int x = 0; x < sizX; x++){
+                for (int y = 0; y < sizY; y++){
+                    for (int z = 0; z < sizZ; z++){
+                        int ct;
+                        iss >> ct;
+                        data[x][y][z].type = static_cast<CubeType>(ct);
+                    }
+                }
             }
         }else{
             std::cout << "The file can not be opened!" << std::endl;
-        }}
+        }
     }
     void UpdateIndices(){
         indices.clear();

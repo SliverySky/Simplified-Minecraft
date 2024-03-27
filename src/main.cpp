@@ -22,7 +22,7 @@ int main(){
     window_settings.antialiasingLevel = 2;  // Request 2 levels of antialiasing
 
     sf::RenderWindow window(sf::VideoMode(800, 600), "MineCraft",sf::Style::Resize | sf::Style::Close, window_settings);
-    window.setMouseCursorGrabbed(true); 
+    
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(sf::Context::getFunction))){
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
@@ -40,7 +40,7 @@ int main(){
 
     glViewport(0, 0, srcWidth, srcHeight);
 
-    Camera camera(window, glm::vec3(12, 6, 12));
+    Camera camera(window, glm::vec3(100, 30, 100));
 
     bool running = true;
     sf::Clock clock;
@@ -94,6 +94,7 @@ int main(){
     debugShader.use();
     debugShader.setInt("depthMap", 0);
     BuildTool buildTool;
+    window.setMouseCursorGrabbed(true);
     while(running){
         sf::Event event;
         while(window.pollEvent(event)){
@@ -105,6 +106,10 @@ int main(){
                 stop = false;
             }else if (event.type == sf::Event::LostFocus){
                 stop = true;
+            }else if (event.type == sf::Event::KeyPressed){
+                if (event.key.code == sf::Keyboard::Escape){
+                    running = false;
+                }
             }
         }    
         if (stop) continue; 
