@@ -20,9 +20,9 @@
 
 [√] 不同工具的选择
 
-### 待做
-[ ] 基于柏林噪声和BFM生成方块地形
+[√] 基于噪声生成方块地形
 
+### 待做
 [ ] 水面的生成 （透明、柏林噪声）
 
 [ ] 玩家的碰撞检测
@@ -32,6 +32,6 @@
 #### 效果预览
 
 ![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png)
-
+![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png)
 
 
