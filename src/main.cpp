@@ -131,7 +131,7 @@ int main(){
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
-        world.Render(depthShader);
+        world.Render(depthShader, camera, true);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         //重置屏幕
@@ -168,7 +168,7 @@ int main(){
         nowShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        world.Render(nowShader);
+        world.Render(nowShader, camera, false);
 
         // //渲染天空盒子
 

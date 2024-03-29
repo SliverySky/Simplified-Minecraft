@@ -4,9 +4,10 @@
 #include "cubeRender.h"
 #include <fstream>
 #include <sstream>
+using std::vector;
 struct CubeInfo{
     CubeType type = CubeType::EMPTY;
-    std::vector<unsigned int> memory_index;
+    vector<unsigned int> memory_index;
     int isRender = 0x3f; //六个面是否渲染
 };
 
@@ -21,20 +22,68 @@ public:
     const int static MAX_X = 200;
     const int static MAX_Y = 80;
     const int static MAX_Z = 200;
-    std::vector<std::vector<std::vector<CubeInfo>>> data;
-    Mesh worldMesh;
+    const int static CHUNK_SIZE = 10;
+    const int static CHUNK_X = MAX_X / CHUNK_SIZE;
+    const int static CHUNK_Y = MAX_Y / CHUNK_SIZE;
+    const int static CHUNK_Z = MAX_Z / CHUNK_SIZE;
+    const int static CUBE_PER_CHUNK = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
+    vector<vector<vector<CubeInfo>>> data;
+    
     CubeRender cubeRender;
-    std::vector<unsigned int> indices;
     glm::ivec3 ds[6] = {{0, 1, 0}, {1, 0, 0}, {0, 0, 1}, {0, 0, -1}, {-1, 0, 0}, {0, -1, 0}};
-
+    struct Chunks{
+    private:
+        vector<vector<vector<Mesh>>> data;
+        vector<vector<vector<vector<unsigned int>>>> indices;
+    public:
+        vector<glm::ivec3> ks;
+        Chunks():
+        data(CHUNK_X, vector<vector<Mesh>>(CHUNK_Y, vector<Mesh>(CHUNK_Z, Mesh(CUBE_PER_CHUNK)))),
+        indices(CHUNK_X, vector<vector<vector<unsigned int>>>(CHUNK_Y, vector<vector<unsigned int>>(CHUNK_Z, vector<unsigned int>(0))))
+        {
+            for (int x = 0; x < CHUNK_X; x++){
+            for (int y = 0; y < CHUNK_Y; y++){
+            for (int z = 0; z < CHUNK_Z; z++){
+                ks.push_back({x, y, z});
+                data[x][y][z].AllocateResource();
+            }}}
+        }
+        Mesh &operator[](const glm::ivec3& i){
+            return data[i.x][i.y][i.z];
+        }
+        void ClearIndices(){
+            for (auto k: ks){
+                indices[k.x][k.y][k.z].clear();
+            }
+        }
+        void AddIndex(const glm::ivec3& cubePos, int index){
+            glm::ivec3 pos = cubePos / CHUNK_SIZE;
+            indices[pos.x][pos.y][pos.z].push_back(index);
+        }
+        void UpdateIndices(){
+            for (auto k: ks){
+                data[k.x][k.y][k.z].UpdateIndices(indices[k.x][k.y][k.z]);
+            }
+        }
+        int GetIndicesNum(){
+            int sum = 0;
+            for (auto k: ks){
+                sum += indices[k.x][k.y][k.z].size();
+            }
+            return sum;
+        }
+    }chunks;
 
     World(glm::ivec3 lightPos)
-    :data(MAX_X, std::vector<std::vector<CubeInfo>>(MAX_Y, std::vector<CubeInfo>(MAX_Z)))
+    :data(MAX_X, vector<vector<CubeInfo>>(MAX_Y, vector<CubeInfo>(MAX_Z)))
     {       
         std::cout<<"Start to build world."<<std::endl;
         Build(); // 构建世界中的方块数据
         cubeRender.LoadResource(); // 加载方块资源
-        worldMesh.textureID = cubeRender.textureID; //方块贴图
+        //设置方块贴图
+        for(auto i: chunks.ks){
+            chunks[i].textureID = cubeRender.textureID;
+        }
         std::cout<<"Start to load vertices data."<<std::endl;
         // 添加Mesh中的顶点数据
         for (int x = 0; x < MAX_X; x++){
@@ -47,9 +96,10 @@ public:
             //std::cout<<x<<" "<<y<<" "<<z <<" "<<std::endl;
         }}}
         std::cout<<"Start to update indices."<<std::endl;
-        worldMesh.MemToBuffer();
-        UpdateIndices();
-        worldMesh.UpdateIndices(indices);
+        for(auto i: chunks.ks){
+            chunks[i].MemToBuffer();
+        }
+        UpdateChunkIndices();
     }
     void Build(){
         for (int x = 0; x < MAX_X; x++)
@@ -87,8 +137,8 @@ public:
             std::cout << "The file can not be opened!" << std::endl;
         }
     }
-    void UpdateIndices(){
-        indices.clear();
+    void UpdateChunkIndices(){
+        chunks.ClearIndices();
         for (int x = 0; x < MAX_X; x++){
         for (int y = 0; y < MAX_Y; y++){
         for (int z  = 0; z < MAX_Z; z++){
@@ -100,45 +150,49 @@ public:
                 for (int i = 0; i < 6; i++){ // 6个面
                     if (info.isRender & (1<<i)){
                         // 每个面的6个顶点
-                        for (int j = 0; j < 6; j++) indices.push_back(info.memory_index[6 * i + j]);
+                        for (int j = 0; j < 6; j++) 
+                            chunks.AddIndex(pos, info.memory_index[6 * i + j]);
                     }
                 }
             }else{
-               for(auto i:info.memory_index) indices.push_back(i);
+               for(auto i:info.memory_index)
+                    chunks.AddIndex(pos, i);
             }
         }}}
-        std::cout<<"#indices:"<<indices.size()<<std::endl;
+        chunks.UpdateIndices();
+        //std::cout<<"#indices:"<<chunks.GetIndicesNum()<<std::endl;
     }
 
 
     void AddCube(glm::ivec3 pos, CubeType type, bool instant=true){
         glm::ivec3 p2;
         CubeInfo & info = data[pos.x][pos.y][pos.z];
-        
+        glm::ivec3 cIndex = pos / CHUNK_SIZE;
         info.type = type;
-        info.memory_index = cubeRender.AddCubeToMesh(worldMesh, type, pos, instant);
+        //std::cout<<cIndex.x<<" "<<cIndex.y<<" "<<cIndex.z<<" "<<"add cube"<<std::endl;
+        info.memory_index = cubeRender.AddCubeToMesh(chunks[cIndex], type, pos, instant);
+        //std::cout<<"end cube"<<std::endl;
         if(IsOpaque(pos)) UpdateRenderInfo(pos);
         for(int k = 0; k < 6; k++){
             glm::ivec3 p2 = pos + ds[k];
             if(IsInRange(p2) && IsOpaque(p2)) UpdateRenderInfo(p2);
         }
         if(instant){
-            UpdateIndices();
-            worldMesh.UpdateIndices(indices);
+            UpdateChunkIndices();
         }
     }
 
     void RemoveCube(glm::ivec3 pos){
         CubeInfo & info = data[pos.x][pos.y][pos.z];
         info.type = EMPTY;
-        worldMesh.RemoveVertices(info.memory_index);
+        glm::ivec3 cIndex = pos / CHUNK_SIZE;
+        chunks[cIndex].RemoveVertices(info.memory_index);
         info.memory_index.clear();
         for(int k = 0; k < 6; k++){
             glm::ivec3 p2 = pos + ds[k];
             if(IsInRange(p2) && IsOpaque(p2)) UpdateRenderInfo(p2);
         }
-        UpdateIndices();
-        worldMesh.UpdateIndices(indices);
+        UpdateChunkIndices();
     }
 
     void UpdateRenderInfo(glm::ivec3 pos){
@@ -154,8 +208,24 @@ public:
         info.isRender = isRender;
     }
 
-    void Render(Shader &shader){
-        worldMesh.Draw(shader, indices);
+    void Render(Shader &shader, Camera &camera, bool IsShadow=false){
+        int cnt = 0;
+        for (auto k: chunks.ks){
+            if(IsShadow)
+                chunks[k].Draw(shader);
+            else{
+                glm::vec3 p1 (k.x * CHUNK_SIZE, k.y * CHUNK_SIZE, k.z * CHUNK_SIZE);
+                glm::vec3 p2 = p1 + float(CHUNK_SIZE);
+                if (camera.IsInFrustum(p1, p2)){
+                    chunks[k].Draw(shader);
+                    cnt += 1;
+                }
+            }
+            
+        }
+        //chunks[glm::ivec3(0,0,0)].Draw(shader);
+        // if (!IsShadow)
+        //     std::cout<<"chunks:"<<cnt<<"/"<<chunks.ks.size()<<std::endl;
     }
 
     bool IsOpaque(glm::ivec3 pos){
@@ -207,7 +277,5 @@ public:
             return OUTOFRANGE;
         }
     }
-
-
 };
 #endif

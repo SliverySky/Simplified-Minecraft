@@ -24,25 +24,87 @@ public:
     float moveSpeed;
     float mouseSensitivity;
     float zoom;
+    struct Plan{
+        glm::vec3 n;
+        float d;
+        void SetVal(const glm::vec3& norm, const glm::vec3& p){
+            n = norm;
+            d = glm::dot(norm, p);
+        }
+        bool IsPositive(const glm::vec3& v){
+            return glm::dot(v, n) >= d;
+        }
+    }plans[6];
     sf::Vector2i lastMousePosition;
     sf::RenderWindow &window;
-    glm::mat4 projMat = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+    const float zFar = 200.0f;
+    const float zNear = 0.1f;
+    const float fovy = glm::radians(45.0f);
+    const float aspect = 800.0f / 600.0f;
+    glm::mat4 projMat = glm::perspective(fovy, aspect, zNear, zFar);
+
+    float halfVSide = zFar * glm::tan(fovy / 2);
+    float halfHSide = halfVSide * aspect;
+    glm::mat4 viewMat;
     Camera(sf::RenderWindow & window, glm::vec3 _position = glm::vec3(0,0,0), float _pitch = PITCH, float _yaw = YAW):moveSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM), window(window){
         position = _position;
         pitch = _pitch;
         yaw = _yaw;
         lastMousePosition = sf::Mouse::getPosition(window);
         updateDirectionVectoers();
+        setViewMatrix();
+        CalFrustum();
+        for(int i = 0; i < 6; i++){
+            std::cout<<i<<":"<<plans[i].n.x <<" "<<plans[i].n.y << " " << plans[i].n.z << " "<<plans[i].d <<std::endl;
+        }
+
+    }
+    void CalFrustum(){
+        plans[0].SetVal(front, front * zNear + position); // Near
+        plans[1].SetVal(-front, front * zFar + position); // Far
+        glm::vec3 farP = zFar * front;
+        plans[2].SetVal(glm::normalize(-glm::cross(up, farP + left * halfHSide)), position); // Left
+        plans[3].SetVal(glm::normalize(glm::cross(up, farP - left * halfHSide)), position); // Right
+        plans[4].SetVal(glm::normalize(glm::cross(left, farP + up * halfVSide)), position); // Top
+        plans[5].SetVal(glm::normalize(-glm::cross(left, farP - up * halfVSide)), position); // Top
     }
 
+    bool IsInFrustum(glm::vec3 p1, glm::vec3 p2){
+        for (int i = 0; i < 6; i++){
+            bool isOutside = true;
+            for (int k = 0; k < 8; k++){
+                glm::vec3 p;
+                p.x = (k&1) ? p1.x : p2.x;
+                p.y = (k&2) ? p1.y : p2.y;
+                p.z = (k&4) ? p1.z : p2.z;
+                //glm::vec3 t = viewMat * glm::vec4(p, 1.0);
+                if (plans[i].IsPositive(p)){
+                    isOutside = false;
+                    break;
+                }
+            }
+            if (isOutside) return false;
+        }
+        return true;
+    }
+
+    glm::vec4 GetMatRow(glm::mat4& m, int i){
+        return glm::vec4(m[i][0], m[i][1], m[i][2], m[i][3]);
+    }
+
+    void setViewMatrix(){
+        viewMat = glm::lookAt(position, position+front, up);
+    }   
     glm::mat4 getViewMatrix(){
-        return glm::lookAt(position, position+front, up);
+        return viewMat;
     }   
 
     void HandEvent(sf::Event event, float deltaTime){
         processKeyboard(deltaTime);
         processMouse();
         updateDirectionVectoers();
+        CalFrustum();
+        setViewMatrix();
     }
 
 private:

@@ -12,7 +12,6 @@ uniform sampler2D shadowMap;
 // uniform vec3 lightColor;
 uniform vec3 viewPos;
 
-
 float ShadowCalculation(vec4 fragPosLightSpace, float cosVal){
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     if(projCoords.z > 1.0 || projCoords.x > 1.0 || projCoords.y > 1.0||
@@ -36,6 +35,12 @@ float ShadowCalculation(vec4 fragPosLightSpace, float cosVal){
     return shadow;
 }
 
+float random_number(vec2 st) {
+    return fract(sin(dot(st.xy,
+                         vec2(12.9898,78.233)))*
+        43758.5453123);
+}
+
 
 void main()
 {
@@ -43,9 +48,16 @@ void main()
     vec3 lightColor = vec3(1, 1, 1);
     vec4 color4 = texture(texture_diffuse, fs_in.TexCoord);
     if(color4.a == 0.0f) discard; //透明则不绘制
+
+    // if (fs_in.TexCoord.x < 7.0f / 16.0 && fs_in.TexCoord.x > 6.0f / 16.0){
+    //     if (random_number(fs_in.FragPosLightSpace.xy) < 0.6){
+    //         discard;
+    //     }
+    // }
+
     vec3 color = color4.rgb;
     vec3 normal = normalize(fs_in.Normal);
-    vec3 ambientCof = 0.5 * lightColor; //ambient
+    vec3 ambientCof = 0.8 * lightColor; //ambient
     float cosVal = dot(normal, lightDir);
     vec3 diffuseCof = max(cosVal, 0.0) * lightColor; //diffuse
     // // specular

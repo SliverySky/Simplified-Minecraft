@@ -7,6 +7,7 @@
 #include "shader.h"
 #include <stack>
 #include <queue>
+#include <iostream>
 struct Vertex {
   glm::vec3 position;
   glm::vec3 normal;
@@ -23,16 +24,22 @@ public:
     // std::vector<unsigned int> indices;
     unsigned int textureID;
     unsigned int VAO, VBO, EBO;
-    const int MAX_NUM = 36 * 200 * 200 * 50;
+    int MAX_NUM;
     std::queue<unsigned int> freeSpace;
     std::vector<Vertex> vertex_mem;
     std::vector<unsigned int> indices_mem;
+    int indices_num = 0;
     //构造函数
-    Mesh(){
+    Mesh(int max_cube_num): MAX_NUM(36 * max_cube_num){
+    }
+
+    bool AllocateResource(){
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
-        BindBuffer();
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ARRAY_BUFFER, MAX_NUM * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
         for(int i=0; i<MAX_NUM; i++){
             freeSpace.push(i);
@@ -44,8 +51,12 @@ public:
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, normal));
         glEnableVertexAttribArray(2); //texCoords
         glVertexAttribPointer(2, 2, GL_FLOAT,GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, texCoords));
-        UnbindBuffer();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        return true;
     }
+
     void BindBuffer(){
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -67,8 +78,9 @@ public:
     // std::vector<unsigned int> AddVertices(std::vector<Vertex> &vertices){
     // }
     void MemToBuffer(){
-        BindBuffer();
         int n = vertex_mem.size();
+        // if (n == 0) return;
+        BindBuffer();
         for(int i = 0; i < n;){
             int j;
             for(j = i+1; j < n; j++){
@@ -111,14 +123,15 @@ public:
     }
     void UpdateIndices(std::vector<unsigned int> &indices){
         BindBuffer();
+        indices_num = indices.size();
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indices.size() * sizeof(unsigned int), &indices[0]);
         UnbindBuffer();
     }
-    void Draw(Shader &shader, std::vector<unsigned int> &indices){
+    void Draw(Shader &shader){
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureID);
         BindBuffer();
-        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT,0);
+        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices_num), GL_UNSIGNED_INT,0);
         UnbindBuffer();
     }
     // void UpdateVertexBuffer(std::vector<int> indices){

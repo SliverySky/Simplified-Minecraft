@@ -187,8 +187,11 @@ public:
                 break;
             }
             if (buildMode > 0 && world.IsBuildable(pos)){
-                isHit = true;
-                break;
+                if (glm::distance(source, pos)>=2){
+                    isHit = true;
+                    break;
+                }
+                
             }
             if (glm::distance(source, pos) >= 20) break;
             mint = 1e30;
