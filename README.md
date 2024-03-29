@@ -26,7 +26,7 @@
 
 #### 效果预览
 
-![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png)
-![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png)
+![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png){:width="200px" height="200px"}
+![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png){:width="200px" height="200px"}
 
 
