@@ -25,8 +25,9 @@
 [√] 性能优化：视锥体剔除
 
 #### 效果预览
+<img src="[https://i.imgur.com/ZWnhY9T.png](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png)" width=50% height=50%>
+![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png)
 
-![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png){:width="200px" height="200px"}
-![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png){:width="200px" height="200px"}
+
 
 
