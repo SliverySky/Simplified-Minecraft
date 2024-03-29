@@ -26,8 +26,8 @@
 
 #### 效果预览
 <img src="https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo.png" width=50% height=50%>
-![Demo](https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png)
-
+<img src="https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo1.png" width=50% height=50%>
+<img src="https://github.com/SliverySky/Simplified-Minecraft/blob/master/figures/demo2.png" width=50% height=50%>
 
 
 
